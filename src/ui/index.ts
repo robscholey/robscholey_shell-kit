@@ -45,6 +45,19 @@ export {
   DialogDescription,
 } from './components/dialog';
 
+export {
+  Drawer,
+  DrawerPortal,
+  DrawerOverlay,
+  DrawerTrigger,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerFooter,
+  DrawerTitle,
+  DrawerDescription,
+} from './components/drawer';
+
 export { Separator } from './components/separator';
 
 export { Avatar, AvatarImage, AvatarFallback } from './components/avatar';
@@ -137,3 +150,6 @@ export {
 export { Skeleton } from './components/skeleton';
 
 export { Alert, AlertTitle, AlertDescription } from './components/alert';
+
+export { Typography, typographyVariants } from './components/typography';
+export type { TypographyProps } from './components/typography';
