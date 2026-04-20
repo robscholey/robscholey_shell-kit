@@ -1,178 +1,266 @@
 /**
- * The rs. design system — shadcn-aligned tokens with a custom dark
- * palette as the default and an equivalent light mode.
+ * The rs. design system — dark-by-default tokens with a flipped light mode
+ * and seven interchangeable accent variants (teal, warm, mono, rose, indigo,
+ * betway, fsgb).
  *
- * Convention follows shadcn-CLI v4:
- *   :root  — light tokens (the technical default)
- *   .dark  — dark tokens (applied via <html class="dark"> in layout.tsx)
+ * Theme control is attribute-driven, not class-driven:
+ *   <html data-theme="dark|light" data-accent="teal|warm|mono|rose|indigo|betway|fsgb">
  *
- * Sub-apps render dark by default because the shell + admin layouts
- * apply the class. Removing or toggling the class switches modes
- * without an SSR flash, and Tailwind's `dark:` variant continues to
- * behave conventionally for any shadcn component that uses it.
+ * The `:root` block carries the dark palette and the default (teal) accent,
+ * so omitting both attributes is valid — sub-apps render dark-teal without
+ * any wiring. `[data-theme="light"]` flips the surface tokens; the per-accent
+ * brand triad is re-stated inside each `[data-theme="light"][data-accent=…]`
+ * combo because light mode pulls brand from a different part of the ramp.
  *
- * Consumer wiring (in app/globals.css):
+ * Surfaces are organised as a five-tier ramp — `--background`, `--bg-soft`,
+ * `--card`, `--card-2`, `--card-hi` — plus `--popover` aliasing `--card`.
+ * The brand triad is `--brand` (bright / text + highlight), `--brand-dim`
+ * (mid / borders + hover), `--brand-deep` (tinted background). `--ring` is
+ * the focus-outline colour and `--brand-glow` is the soft rgba halo used
+ * for focus rings and radial backdrops.
+ *
+ * The shadow scale is intentionally two-tier (`--shadow-sm`, `--shadow`) —
+ * the old shadcn 8-tier scale has been dropped. `@theme inline` only mirrors
+ * these two, so Tailwind's `shadow` and `shadow-sm` utilities resolve to
+ * token values; any component that previously reached for `shadow-md` /
+ * `shadow-lg` etc. has been re-pointed at `shadow` in its own file.
+ *
+ * Consumer wiring (unchanged, in app/globals.css):
  *   @import "tailwindcss";
  *   @import "@robscholey/shell-kit/ui/theme.css";
  *
- * This file does NOT @import "tailwindcss" itself — re-importing leads
- * to double processing and noisier diagnostics. The consumer owns
- * Tailwind's lifecycle.
+ * This file does NOT @import "tailwindcss" itself — re-importing leads to
+ * double processing and noisier diagnostics. The consumer owns Tailwind's
+ * lifecycle.
+ *
+ * `<ShellKitProvider>` is the recommended way to manage `data-theme` and
+ * `data-accent` at runtime: it persists to localStorage, broadcasts changes
+ * over postMessage when mounted inside the shell iframe, and exposes
+ * `useTheme()` / `useAccent()` for app-level UI (theme pickers, accent
+ * swatches). Setting the attributes by hand on `<html>` also works — the
+ * CSS cares about the attributes, not about who put them there.
  */
 
+/* ---------------- BASE COOL-DARK SURFACES + DEFAULT ACCENT (TEAL) ---------------- */
 :root {
-  --background:           #fafbfc;
-  --foreground:           #131720;
-  --card:                 #f1f4f7;
-  --card-foreground:      #131720;
-  --popover:              #f1f4f7;
-  --popover-foreground:   #131720;
+  --background:    #0d1117;
+  --bg-soft:       #0f141b;
+  --card:          #161b22;
+  --card-2:        #1c2128;
+  --card-hi:       #222831;
+  --popover:       #161b22;
+  --border:        #2a313a;
+  --border-strong: #3a414c;
+  --input:         #3a414c;
 
-  /* The rs. button reads as elevated/tinted, not loud — pale tinted
-     bg with deep brand text. Same intent in both modes. */
-  --primary:              #ccfbf1;
-  --primary-foreground:   #0d4844;
+  --foreground:         #e6edf3;
+  --muted-foreground:   #8b95a3;
+  --subtle-foreground:  #6e7681;
 
-  --secondary:            #e7ebf0;
-  --secondary-foreground: #131720;
-
-  --muted:                #e7ebf0;
-  --muted-foreground:     #4a5260;
-
-  --accent:               #ccfbf1;
-  --accent-foreground:    #0d4844;
-
-  --destructive:          #dc2626;
+  --destructive:  #ef6f6f;
   --destructive-foreground: #fafbfc;
 
-  --border:               #d4d9e0;
-  --input:                #b8bec7;
-  --ring:                 #0d9488;
-
-  /* rs. additions — tokens shadcn doesn't declare. */
-
-  /* Brand teal — text/border highlight. Distinct from --primary, which
-     is the button bg. --brand is the saturated-mid teal that reads as
-     text on white in light mode and as bright teal on dark. */
-  --brand:                #0d9488;
-  --brand-dim:            #5eead4;
-
-  /* Dimmer than --muted-foreground — for footer metadata and mono
-     timestamps. */
-  --subtle-foreground:    #6e7681;
-
-  /* Warm peach secondary — paused statuses, "honest" callouts,
-     interlude blocks. Used sparingly. */
-  --warm:                 #c2410c;
-  --warm-dim:             #fed7aa;
-
-  /* Font fallback chain. layout.tsx wires Next.js font helpers that
-     override these on <html>; if no override, the chain below is used.
-     Keeps the kit usable in sub-apps that don't load Google Fonts. */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --font-serif: ui-serif, Georgia, serif;
 
-  /* shadcn convention drives sm/md/lg from a single --radius. */
-  --radius:               0.5rem;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
 
-  --shadow-2xs:  0 1px 8px 0px rgb(0 0 0 / 0.04);
-  --shadow-xs:   0 1px 8px 0px rgb(0 0 0 / 0.05);
-  --shadow-sm:   0 1px 8px 0px rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
-  --shadow:      0 1px 8px 0px rgb(0 0 0 / 0.10), 0 1px 2px -1px rgb(0 0 0 / 0.10);
-  --shadow-md:   0 1px 8px 0px rgb(0 0 0 / 0.10), 0 2px 4px -1px rgb(0 0 0 / 0.10);
-  --shadow-lg:   0 1px 8px 0px rgb(0 0 0 / 0.12), 0 4px 6px -1px rgb(0 0 0 / 0.10);
-  --shadow-xl:   0 1px 8px 0px rgb(0 0 0 / 0.12), 0 8px 10px -1px rgb(0 0 0 / 0.10);
-  --shadow-2xl:  0 1px 8px 0px rgb(0 0 0 / 0.20);
-}
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow:    0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
 
-.dark {
-  --background:           #0d1117;
-  --foreground:           #e6edf3;
-  --card:                 #161b22;
-  --card-foreground:      #e6edf3;
-  --popover:              #161b22;
-  --popover-foreground:   #e6edf3;
-
+  /* DEFAULT accent = TEAL */
   --primary:              #1a4a45;
   --primary-foreground:   #5eead4;
-
-  --secondary:            #1c2128;
-  --secondary-foreground: #e6edf3;
-
-  --muted:                #1c2128;
-  --muted-foreground:     #8b95a3;
-
   --accent:               #1a4a45;
   --accent-foreground:    #5eead4;
-
-  --destructive:          #ef6f6f;
-  --destructive-foreground: #e6edf3;
-
-  --border:               #2a313a;
-  --input:                #3a414c;
-  --ring:                 #5eead4;
-
   --brand:                #5eead4;
   --brand-dim:            #2e8b7d;
-
-  --subtle-foreground:    #6e7681;
+  --brand-deep:           #1a4a45;
+  --ring:                 #5eead4;
+  --brand-glow:           rgba(94, 234, 212, 0.14);
 
   --warm:                 #f4b393;
   --warm-dim:             #5b3b2e;
 
-  --shadow-2xs:  0 1px 8px 0px rgb(0 0 0 / 0.20);
-  --shadow-xs:   0 1px 8px 0px rgb(0 0 0 / 0.25);
-  --shadow-sm:   0 1px 8px 0px rgb(0 0 0 / 0.30), 0 1px 2px -1px rgb(0 0 0 / 0.30);
-  --shadow:      0 1px 8px 0px rgb(0 0 0 / 0.35), 0 1px 2px -1px rgb(0 0 0 / 0.30);
-  --shadow-md:   0 1px 8px 0px rgb(0 0 0 / 0.35), 0 2px 4px -1px rgb(0 0 0 / 0.30);
-  --shadow-lg:   0 1px 8px 0px rgb(0 0 0 / 0.40), 0 4px 6px -1px rgb(0 0 0 / 0.35);
-  --shadow-xl:   0 1px 8px 0px rgb(0 0 0 / 0.40), 0 8px 10px -1px rgb(0 0 0 / 0.35);
-  --shadow-2xl:  0 1px 8px 0px rgb(0 0 0 / 0.50);
+  --dot-alpha: 0.035;
 }
+
+/* ---------------- ACCENT VARIANTS (dark mode) ---------------- */
+/* Teal is the default and is already set on :root. The explicit
+   [data-accent="teal"] block is redundant by value but kept for
+   documentation / symmetry with the other accents. */
+:root[data-accent='teal'] {
+  --primary: #1a4a45; --primary-foreground: #5eead4;
+  --accent: #1a4a45;  --accent-foreground: #5eead4;
+  --brand: #5eead4; --brand-dim: #2e8b7d; --brand-deep: #1a4a45;
+  --ring: #5eead4; --brand-glow: rgba(94, 234, 212, 0.14);
+}
+:root[data-accent='warm'] {
+  --primary: #3a2318; --primary-foreground: #f4b393;
+  --accent: #3a2318;  --accent-foreground: #f4b393;
+  --brand: #f4b393; --brand-dim: #a56a4b; --brand-deep: #3a2318;
+  --ring: #f4b393; --brand-glow: rgba(244, 179, 147, 0.14);
+}
+:root[data-accent='mono'] {
+  --primary: #2a313a; --primary-foreground: #e6edf3;
+  --accent: #2a313a;  --accent-foreground: #e6edf3;
+  --brand: #e6edf3; --brand-dim: #6e7681; --brand-deep: #2a313a;
+  --ring: #e6edf3; --brand-glow: rgba(230, 237, 243, 0.07);
+}
+:root[data-accent='rose'] {
+  --primary: #3f1a2a; --primary-foreground: #f0a5b9;
+  --accent: #3f1a2a;  --accent-foreground: #f0a5b9;
+  --brand: #f0a5b9; --brand-dim: #a04c6a; --brand-deep: #3f1a2a;
+  --ring: #f0a5b9; --brand-glow: rgba(240, 165, 185, 0.14);
+}
+:root[data-accent='indigo'] {
+  --primary: #1e2448; --primary-foreground: #a5b4fc;
+  --accent: #1e2448;  --accent-foreground: #a5b4fc;
+  --brand: #a5b4fc; --brand-dim: #5b6cc3; --brand-deep: #1e2448;
+  --ring: #a5b4fc; --brand-glow: rgba(165, 180, 252, 0.14);
+}
+:root[data-accent='betway'] {
+  --primary: #153b1b; --primary-foreground: #4ade80;
+  --accent: #153b1b;  --accent-foreground: #4ade80;
+  --brand: #4ade80; --brand-dim: #22a54a; --brand-deep: #153b1b;
+  --ring: #4ade80; --brand-glow: rgba(74, 222, 128, 0.14);
+}
+:root[data-accent='fsgb'] {
+  --primary: #2a1c47; --primary-foreground: #b8a1e8;
+  --accent: #2a1c47;  --accent-foreground: #b8a1e8;
+  --brand: #b8a1e8; --brand-dim: #7a5cb8; --brand-deep: #2a1c47;
+  --ring: #b8a1e8; --brand-glow: rgba(184, 161, 232, 0.14);
+}
+
+/* ---------------- LIGHT MODE (flips surfaces, brand re-stated per accent) ---------------- */
+:root[data-theme='light'] {
+  --background: #fafbfc;
+  --bg-soft:    #f3f5f8;
+  --card:       #ffffff;
+  --card-2:     #f1f4f7;
+  --card-hi:    #e8ecf1;
+  --popover:    #ffffff;
+  --border:     #d4d9e0;
+  --border-strong: #b8bec7;
+  --input:      #b8bec7;
+
+  --foreground:         #131720;
+  --muted-foreground:   #4a5260;
+  --subtle-foreground:  #6e7681;
+
+  --dot-alpha: 0.08;
+  --shadow-sm: 0 1px 2px rgba(15, 20, 32, 0.04);
+  --shadow:    0 1px 2px rgba(15, 20, 32, 0.04), 0 12px 32px -16px rgba(15, 20, 32, 0.12);
+}
+:root[data-theme='light'][data-accent='teal'] {
+  --primary: #ccfbf1; --primary-foreground: #0d4844;
+  --accent: #ccfbf1;  --accent-foreground: #0d4844;
+  --brand: #0d9488; --brand-dim: #14b8a6; --brand-deep: #ccfbf1;
+  --ring: #0d9488; --brand-glow: rgba(13, 148, 136, 0.10);
+}
+:root[data-theme='light'][data-accent='warm'] {
+  --primary: #fed7aa; --primary-foreground: #7c2d12;
+  --accent: #fed7aa;  --accent-foreground: #7c2d12;
+  --brand: #c2410c; --brand-dim: #ea580c; --brand-deep: #fed7aa;
+  --ring: #c2410c; --brand-glow: rgba(194, 65, 12, 0.10);
+}
+:root[data-theme='light'][data-accent='mono'] {
+  --primary: #e8ecf1; --primary-foreground: #131720;
+  --accent: #e8ecf1;  --accent-foreground: #131720;
+  --brand: #131720; --brand-dim: #4a5260; --brand-deep: #e8ecf1;
+  --ring: #131720; --brand-glow: rgba(19, 23, 32, 0.06);
+}
+:root[data-theme='light'][data-accent='rose'] {
+  --primary: #fecdd3; --primary-foreground: #881337;
+  --accent: #fecdd3;  --accent-foreground: #881337;
+  --brand: #be185d; --brand-dim: #e11d48; --brand-deep: #fecdd3;
+  --ring: #be185d; --brand-glow: rgba(190, 24, 93, 0.10);
+}
+:root[data-theme='light'][data-accent='indigo'] {
+  --primary: #dbeafe; --primary-foreground: #1e2a78;
+  --accent: #dbeafe;  --accent-foreground: #1e2a78;
+  --brand: #3730a3; --brand-dim: #6366f1; --brand-deep: #dbeafe;
+  --ring: #3730a3; --brand-glow: rgba(55, 48, 163, 0.10);
+}
+:root[data-theme='light'][data-accent='betway'] {
+  --primary: #d6f5de; --primary-foreground: #0c3a1a;
+  --accent: #d6f5de;  --accent-foreground: #0c3a1a;
+  --brand: #128a2f; --brand-dim: #22a54a; --brand-deep: #d6f5de;
+  --ring: #128a2f; --brand-glow: rgba(18, 138, 47, 0.10);
+}
+:root[data-theme='light'][data-accent='fsgb'] {
+  --primary: #e4dcf5; --primary-foreground: #2a1c47;
+  --accent: #e4dcf5;  --accent-foreground: #2a1c47;
+  --brand: #5e2d90; --brand-dim: #7a5cb8; --brand-deep: #e4dcf5;
+  --ring: #5e2d90; --brand-glow: rgba(94, 45, 144, 0.10);
+}
+
+/* Scope the accent/theme transitions to colour properties only so they
+   don't fight Radix focus management (opacity, transform) on popovers,
+   dialogs, switches, etc. `.dot`, `pre`, `.diagram`, `.swatch` are
+   opted out entirely because the dotted / code / swatch visuals look
+   jittery when they cross-fade. */
+:root * {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+.dot, pre, .diagram, .swatch { transition: none; }
 
 @theme inline {
   --color-background:           var(--background);
-  --color-foreground:           var(--foreground);
+  --color-bg-soft:              var(--bg-soft);
   --color-card:                 var(--card);
-  --color-card-foreground:      var(--card-foreground);
+  --color-card-2:               var(--card-2);
+  --color-card-hi:              var(--card-hi);
   --color-popover:              var(--popover);
-  --color-popover-foreground:   var(--popover-foreground);
+  --color-border:               var(--border);
+  --color-border-strong:        var(--border-strong);
+  --color-input:                var(--input);
+
+  --color-foreground:           var(--foreground);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-subtle-foreground:    var(--subtle-foreground);
+
+  /* Shadcn-adjacent aliases kept so utilities still resolve without
+     redeclaring separate tokens. The design-system spec collapses
+     `*-foreground` surface pairs onto the single `--foreground`, so
+     card / popover foregrounds map through to it. `--color-secondary`
+     points at `--card-2` — the mid-surface tier that previously played
+     the "secondary" role. */
+  --color-muted:                var(--bg-soft);
+  --color-card-foreground:      var(--foreground);
+  --color-popover-foreground:   var(--foreground);
+  --color-secondary:            var(--card-2);
+  --color-secondary-foreground: var(--foreground);
+
   --color-primary:              var(--primary);
   --color-primary-foreground:   var(--primary-foreground);
-  --color-secondary:            var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted:                var(--muted);
-  --color-muted-foreground:     var(--muted-foreground);
   --color-accent:               var(--accent);
   --color-accent-foreground:    var(--accent-foreground);
-  --color-destructive:          var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border:               var(--border);
-  --color-input:                var(--input);
-  --color-ring:                 var(--ring);
 
   --color-brand:                var(--brand);
   --color-brand-dim:            var(--brand-dim);
-  --color-subtle-foreground:    var(--subtle-foreground);
+  --color-brand-deep:           var(--brand-deep);
+  --color-brand-glow:           var(--brand-glow);
+  --color-ring:                 var(--ring);
+
   --color-warm:                 var(--warm);
   --color-warm-dim:             var(--warm-dim);
 
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
   --font-sans:  var(--font-sans);
   --font-mono:  var(--font-mono);
-  --font-serif: var(--font-serif);
 
-  --radius-sm: calc(var(--radius) - 2px);
+  --radius-sm: var(--radius-sm);
   --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 6px);
-  --radius-xl: calc(var(--radius) + 12px);
+  --radius-lg: var(--radius-lg);
 
-  --shadow-2xs: var(--shadow-2xs);
-  --shadow-xs:  var(--shadow-xs);
-  --shadow-sm:  var(--shadow-sm);
-  --shadow:     var(--shadow);
-  --shadow-md:  var(--shadow-md);
-  --shadow-lg:  var(--shadow-lg);
-  --shadow-xl:  var(--shadow-xl);
-  --shadow-2xl: var(--shadow-2xl);
+  --shadow-sm: var(--shadow-sm);
+  --shadow:    var(--shadow);
 }
