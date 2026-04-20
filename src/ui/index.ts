@@ -154,3 +154,21 @@ export type { AlertProps, AlertIconProps } from './components/alert';
 
 export { Typography, typographyVariants } from './components/typography';
 export type { TypographyProps } from './components/typography';
+
+export { Tag, tagVariants } from './components/tag';
+export type { TagProps } from './components/tag';
+
+export { Kbd } from './components/kbd';
+export type { KbdProps } from './components/kbd';
+
+export { SessionPill } from './components/session-pill';
+export type { SessionPillProps } from './components/session-pill';
+
+export { ProjectCard } from './components/project-card';
+export type { ProjectCardProps } from './components/project-card';
+
+export { CodePanel } from './components/code-panel';
+export type { CodePanelProps } from './components/code-panel';
+
+export { Diagram, DiagramAccent, DiagramWarm, DiagramDim } from './components/diagram';
+export type { DiagramProps } from './components/diagram';
