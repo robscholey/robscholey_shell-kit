@@ -149,7 +149,8 @@ export {
 
 export { Skeleton } from './components/skeleton';
 
-export { Alert, AlertTitle, AlertDescription } from './components/alert';
+export { Alert, AlertIcon, AlertTitle, AlertDescription } from './components/alert';
+export type { AlertProps, AlertIconProps } from './components/alert';
 
 export { Typography, typographyVariants } from './components/typography';
 export type { TypographyProps } from './components/typography';
