@@ -5,6 +5,8 @@ import { PROTOCOL_VERSION, parseShellMessage } from './messages';
 import type {
   ShellUser,
   ShellTheme,
+  Accent,
+  AccentChangeMessage,
   JWTRefreshRequestMessage,
   RequestShellContextMessage,
   ThemeChangeMessage,
@@ -26,10 +28,14 @@ export interface ShellContextState {
   subPath: string | null;
   /** The current colour theme as set by the shell. */
   theme: ShellTheme;
+  /** The current accent as set by the shell. Defaults to `'teal'` until the shell sends one. */
+  accent: Accent;
   /** Sends a request-jwt-refresh message to the shell. */
   requestJWTRefresh: () => void;
   /** Requests a theme change from the shell. The shell is the source of truth and broadcasts to all iframes. */
   requestThemeChange: (theme: ShellTheme) => void;
+  /** Requests an accent change from the shell. The shell is the source of truth and broadcasts to all iframes. */
+  requestAccentChange: (accent: Accent) => void;
 }
 
 /** Callback invoked when the shell tells the child to navigate to a specific path. */
@@ -38,11 +44,12 @@ export type NavigateToPathHandler = (path: string) => void;
 /**
  * Hook that manages communication with the robscholey.com shell via postMessage.
  * Listens for `shell-context`, `jwt-refresh`, `session-ended`, `navigate-to-path`,
- * and `theme-update` messages. Sends `request-shell-context` on mount when running
- * inside an iframe. Validates message origins against the shell origin from the
- * nearest {@link ShellKitProvider} and validates message payloads through the
- * zod-backed shell→child schema so malformed or wrong-protocol messages drop
- * silently (with a console warning for recognised-type mismatches).
+ * `theme-update`, and `accent-update` messages. Sends `request-shell-context` on
+ * mount when running inside an iframe. Validates message origins against the
+ * shell origin from the nearest {@link ShellKitProvider} and validates message
+ * payloads through the zod-backed shell→child schema so malformed or
+ * wrong-protocol messages drop silently (with a console warning for
+ * recognised-type mismatches).
  *
  * @param onNavigateToPath - Optional callback invoked when the shell sends a `navigate-to-path` message (browser back/forward).
  */
@@ -55,6 +62,10 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
   const [isSessionValid, setIsSessionValid] = useState(true);
   const [subPath, setSubPath] = useState<string | null>(null);
   const [theme, setTheme] = useState<ShellTheme>('light');
+  // `'teal'` is the canonical default accent. Used as the fallback when the
+  // shell sends a v1 shell-context that predates the `accent` field (that
+  // field is optional during the protocol transition period).
+  const [accent, setAccent] = useState<Accent>('teal');
 
   // Keep the caller's navigate handler in a ref so the message-listener effect
   // can reference the latest callback without taking it as a dependency.
@@ -89,6 +100,7 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
         setIsSessionValid(true);
         setSubPath(data.subPath);
         setTheme(data.theme);
+        setAccent(data.accent ?? 'teal');
       }
 
       if (data.type === 'jwt-refresh') {
@@ -107,6 +119,10 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
 
       if (data.type === 'theme-update') {
         setTheme(data.theme);
+      }
+
+      if (data.type === 'accent-update') {
+        setAccent(data.accent);
       }
     }
 
@@ -144,6 +160,17 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
     }
   }, []);
 
+  const requestAccentChange = useCallback((newAccent: Accent) => {
+    if (isInIframe()) {
+      const message: AccentChangeMessage = {
+        type: 'accent-change',
+        protocolVersion: PROTOCOL_VERSION,
+        accent: newAccent,
+      };
+      window.parent.postMessage(message, shellOriginRef.current);
+    }
+  }, []);
+
   return {
     isEmbedded,
     showBackButton,
@@ -152,7 +179,9 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
     isSessionValid,
     subPath,
     theme,
+    accent,
     requestJWTRefresh,
     requestThemeChange,
+    requestAccentChange,
   };
 }

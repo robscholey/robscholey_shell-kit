@@ -56,6 +56,7 @@ describe('useShellContext', () => {
         user: { id: '1', name: 'Rob', type: 'owner' },
         subPath: '/projects/123',
         theme: 'dark',
+        accent: 'indigo',
       });
     });
 
@@ -66,6 +67,27 @@ describe('useShellContext', () => {
     expect(result.current.subPath).toBe('/projects/123');
     expect(result.current.isSessionValid).toBe(true);
     expect(result.current.theme).toBe('dark');
+    expect(result.current.accent).toBe('indigo');
+  });
+
+  it('falls back to teal when shell-context arrives without accent', () => {
+    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    act(() => {
+      dispatchShellMessage({
+        type: 'shell-context',
+        protocolVersion: 1,
+        isEmbedded: true,
+        showBackButton: false,
+        shellOrigin: SHELL_ORIGIN,
+        jwt: null,
+        user: null,
+        subPath: null,
+        theme: 'dark',
+      });
+    });
+
+    expect(result.current.accent).toBe('teal');
   });
 
   it('rejects messages from invalid origins', () => {
@@ -192,6 +214,31 @@ describe('useShellContext', () => {
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
       { type: 'theme-change', protocolVersion: 1, theme: 'dark' },
+      SHELL_ORIGIN,
+    );
+  });
+
+  it('updates accent on accent-update message', () => {
+    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    expect(result.current.accent).toBe('teal');
+
+    act(() => {
+      dispatchShellMessage({ type: 'accent-update', protocolVersion: 1, accent: 'rose' });
+    });
+
+    expect(result.current.accent).toBe('rose');
+  });
+
+  it('requestAccentChange sends accent-change postMessage', () => {
+    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.requestAccentChange('fsgb');
+    });
+
+    expect(window.parent.postMessage).toHaveBeenCalledWith(
+      { type: 'accent-change', protocolVersion: 1, accent: 'fsgb' },
       SHELL_ORIGIN,
     );
   });

@@ -1,24 +1,32 @@
-// Configuration
-export { ShellKitProvider, useShellKitConfig } from './ShellKitProvider';
-export type { ShellKitConfig, ShellKitProviderProps } from './ShellKitProvider';
+// Configuration + theme/accent state
+export { ShellKitProvider, useShellKitConfig, useTheme, useAccent } from './ShellKitProvider';
+export type {
+  ShellKitConfig,
+  ShellKitProviderProps,
+  UseThemeResult,
+  UseAccentResult,
+} from './ShellKitProvider';
 
 // Protocol version and message parsers
-export { PROTOCOL_VERSION, parseShellMessage, parseChildMessage } from './messages';
+export { PROTOCOL_VERSION, parseShellMessage, parseChildMessage, ACCENTS } from './messages';
 
 // Message schemas (exported so consumers can compose / validate externally if needed)
 export {
   shellUserSchema,
   shellThemeSchema,
+  accentSchema,
   shellContextMessageSchema,
   jwtRefreshMessageSchema,
   sessionEndedMessageSchema,
   navigateToPathMessageSchema,
   themeUpdateMessageSchema,
+  accentUpdateMessageSchema,
   navigateToShellMessageSchema,
   jwtRefreshRequestMessageSchema,
   requestShellContextMessageSchema,
   routeChangeMessageSchema,
   themeChangeMessageSchema,
+  accentChangeMessageSchema,
   shellToChildMessageSchema,
   childToShellMessageSchema,
 } from './messages';
@@ -27,16 +35,19 @@ export {
 export type {
   ShellUser,
   ShellTheme,
+  Accent,
   ShellContextMessage,
   JWTRefreshMessage,
   SessionEndedMessage,
   NavigateToPathMessage,
   ThemeUpdateMessage,
+  AccentUpdateMessage,
   NavigateToShellMessage,
   JWTRefreshRequestMessage,
   RequestShellContextMessage,
   RouteChangeMessage,
   ThemeChangeMessage,
+  AccentChangeMessage,
   ShellToChildMessage,
   ChildToShellMessage,
 } from './types';

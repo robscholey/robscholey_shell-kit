@@ -23,6 +23,7 @@ const shellToChildValid = {
     user: null,
     subPath: null,
     theme: 'light' as const,
+    accent: 'teal' as const,
   },
   'jwt-refresh': {
     type: 'jwt-refresh' as const,
@@ -42,6 +43,11 @@ const shellToChildValid = {
     type: 'theme-update' as const,
     protocolVersion: PROTOCOL_VERSION,
     theme: 'dark' as const,
+  },
+  'accent-update': {
+    type: 'accent-update' as const,
+    protocolVersion: PROTOCOL_VERSION,
+    accent: 'indigo' as const,
   },
 };
 
@@ -67,6 +73,11 @@ const childToShellValid = {
     type: 'theme-change' as const,
     protocolVersion: PROTOCOL_VERSION,
     theme: 'dark' as const,
+  },
+  'accent-change': {
+    type: 'accent-change' as const,
+    protocolVersion: PROTOCOL_VERSION,
+    accent: 'rose' as const,
   },
 };
 
@@ -112,6 +123,29 @@ describe('shellToChildMessageSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('accepts shell-context without the accent field (transitional v1 shells)', () => {
+    const withoutAccent: Record<string, unknown> = { ...shellToChildValid['shell-context'] };
+    delete withoutAccent.accent;
+    const result = shellToChildMessageSchema.safeParse(withoutAccent);
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects shell-context with an unknown accent value', () => {
+    const result = shellToChildMessageSchema.safeParse({
+      ...shellToChildValid['shell-context'],
+      accent: 'cyberpunk',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects accent-update with an unknown accent value', () => {
+    const result = shellToChildMessageSchema.safeParse({
+      ...shellToChildValid['accent-update'],
+      accent: 'cyberpunk',
+    });
+    expect(result.success).toBe(false);
+  });
+
   it('rejects messages with an unknown type', () => {
     const result = shellToChildMessageSchema.safeParse({
       type: 'definitely-not-a-real-message',
@@ -149,6 +183,14 @@ describe('childToShellMessageSchema', () => {
     const result = childToShellMessageSchema.safeParse({
       ...childToShellValid['theme-change'],
       theme: 'neon',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects accent-change with an unknown accent value', () => {
+    const result = childToShellMessageSchema.safeParse({
+      ...childToShellValid['accent-change'],
+      accent: 'cyberpunk',
     });
     expect(result.success).toBe(false);
   });

@@ -22,6 +22,18 @@ export const shellUserSchema = z.object({
 /** The active colour theme. */
 export const shellThemeSchema = z.enum(['light', 'dark']);
 
+/**
+ * The accent variants recognised by the design system.
+ *
+ * Kept as a `const` tuple (rather than a bare literal-union type) so it can
+ * double as runtime input to `z.enum(ACCENTS)` and as an iteration source
+ * for UI that enumerates every accent (e.g. theme-picker swatches).
+ */
+export const ACCENTS = ['teal', 'warm', 'mono', 'rose', 'indigo', 'betway', 'fsgb'] as const;
+
+/** The active accent variant. */
+export const accentSchema = z.enum(ACCENTS);
+
 /** Sent by the shell to provide the embedding context to a child app. */
 export const shellContextMessageSchema = z.object({
   type: z.literal('shell-context'),
@@ -36,6 +48,11 @@ export const shellContextMessageSchema = z.object({
   user: shellUserSchema.nullable(),
   subPath: z.string().nullable(),
   theme: shellThemeSchema,
+  // Optional in v1 as a transitional state — the current shell-application
+  // build doesn't yet emit `accent`, so leaving it optional here lets the
+  // new child receiver keep accepting older shell-context payloads. A
+  // follow-up commit tightens this to required once the shell is updated.
+  accent: accentSchema.optional(),
 });
 
 /** Sent by the shell when a JWT has been refreshed. */
@@ -63,6 +80,13 @@ export const themeUpdateMessageSchema = z.object({
   type: z.literal('theme-update'),
   protocolVersion,
   theme: shellThemeSchema,
+});
+
+/** Sent by the shell when the accent changes (user picker, account default, etc.). */
+export const accentUpdateMessageSchema = z.object({
+  type: z.literal('accent-update'),
+  protocolVersion,
+  accent: accentSchema,
 });
 
 /** Sent by a child app to navigate back to the shell's root. */
@@ -97,6 +121,13 @@ export const themeChangeMessageSchema = z.object({
   theme: shellThemeSchema,
 });
 
+/** Sent by a child app to request an accent change. The shell is the source of truth. */
+export const accentChangeMessageSchema = z.object({
+  type: z.literal('accent-change'),
+  protocolVersion,
+  accent: accentSchema,
+});
+
 /** Discriminated union of every message the shell sends to a child app. */
 export const shellToChildMessageSchema = z.discriminatedUnion('type', [
   shellContextMessageSchema,
@@ -104,6 +135,7 @@ export const shellToChildMessageSchema = z.discriminatedUnion('type', [
   sessionEndedMessageSchema,
   navigateToPathMessageSchema,
   themeUpdateMessageSchema,
+  accentUpdateMessageSchema,
 ]);
 
 /** Discriminated union of every message a child app sends to the shell. */
@@ -113,6 +145,7 @@ export const childToShellMessageSchema = z.discriminatedUnion('type', [
   requestShellContextMessageSchema,
   routeChangeMessageSchema,
   themeChangeMessageSchema,
+  accentChangeMessageSchema,
 ]);
 
 /** A user identity provided by the shell. */
@@ -120,6 +153,9 @@ export type ShellUser = z.infer<typeof shellUserSchema>;
 
 /** The active colour theme. */
 export type ShellTheme = z.infer<typeof shellThemeSchema>;
+
+/** The active accent variant. */
+export type Accent = z.infer<typeof accentSchema>;
 
 /** Sent by the shell to provide the embedding context to a child app. */
 export type ShellContextMessage = z.infer<typeof shellContextMessageSchema>;
@@ -136,6 +172,9 @@ export type NavigateToPathMessage = z.infer<typeof navigateToPathMessageSchema>;
 /** Sent by the shell when the theme changes. */
 export type ThemeUpdateMessage = z.infer<typeof themeUpdateMessageSchema>;
 
+/** Sent by the shell when the accent changes. */
+export type AccentUpdateMessage = z.infer<typeof accentUpdateMessageSchema>;
+
 /** Sent by a child app to navigate back to the shell's root. */
 export type NavigateToShellMessage = z.infer<typeof navigateToShellMessageSchema>;
 
@@ -151,6 +190,9 @@ export type RouteChangeMessage = z.infer<typeof routeChangeMessageSchema>;
 /** Sent by a child app to request a theme change. */
 export type ThemeChangeMessage = z.infer<typeof themeChangeMessageSchema>;
 
+/** Sent by a child app to request an accent change. */
+export type AccentChangeMessage = z.infer<typeof accentChangeMessageSchema>;
+
 /** Union of all messages the shell sends to child apps. */
 export type ShellToChildMessage = z.infer<typeof shellToChildMessageSchema>;
 
@@ -163,6 +205,7 @@ const SHELL_TO_CHILD_TYPES: ReadonlySet<string> = new Set([
   'session-ended',
   'navigate-to-path',
   'theme-update',
+  'accent-update',
 ]);
 
 const CHILD_TO_SHELL_TYPES: ReadonlySet<string> = new Set([
@@ -171,6 +214,7 @@ const CHILD_TO_SHELL_TYPES: ReadonlySet<string> = new Set([
   'request-shell-context',
   'route-change',
   'theme-change',
+  'accent-change',
 ]);
 
 /**
