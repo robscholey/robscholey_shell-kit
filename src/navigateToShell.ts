@@ -1,4 +1,6 @@
 import { isInIframe } from './isInIframe';
+import { PROTOCOL_VERSION } from './messages';
+import type { NavigateToShellMessage } from './messages';
 
 /**
  * Sends a navigate-to-shell postMessage to the parent shell.
@@ -9,5 +11,9 @@ import { isInIframe } from './isInIframe';
  */
 export function navigateToShell(shellOrigin: string): void {
   if (!isInIframe()) return;
-  window.parent.postMessage({ type: 'navigate-to-shell' }, shellOrigin);
+  const message: NavigateToShellMessage = {
+    type: 'navigate-to-shell',
+    protocolVersion: PROTOCOL_VERSION,
+  };
+  window.parent.postMessage(message, shellOrigin);
 }

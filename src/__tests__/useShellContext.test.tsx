@@ -37,7 +37,7 @@ describe('useShellContext', () => {
     renderHook(() => useShellContext(), { wrapper: Wrapper });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'request-shell-context' },
+      { type: 'request-shell-context', protocolVersion: 1 },
       SHELL_ORIGIN,
     );
   });
@@ -48,6 +48,7 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
+        protocolVersion: 1,
         isEmbedded: true,
         showBackButton: true,
         shellOrigin: SHELL_ORIGIN,
@@ -74,6 +75,7 @@ describe('useShellContext', () => {
       const event = new MessageEvent('message', {
         data: {
           type: 'shell-context',
+          protocolVersion: 1,
           isEmbedded: true,
           showBackButton: true,
           shellOrigin: 'https://evil.com',
@@ -97,6 +99,7 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
+        protocolVersion: 1,
         isEmbedded: true,
         showBackButton: false,
         shellOrigin: SHELL_ORIGIN,
@@ -108,7 +111,7 @@ describe('useShellContext', () => {
     });
 
     act(() => {
-      dispatchShellMessage({ type: 'jwt-refresh', jwt: 'new-jwt' });
+      dispatchShellMessage({ type: 'jwt-refresh', protocolVersion: 1, jwt: 'new-jwt' });
     });
 
     expect(result.current.jwt).toBe('new-jwt');
@@ -120,6 +123,7 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
+        protocolVersion: 1,
         isEmbedded: true,
         showBackButton: false,
         shellOrigin: SHELL_ORIGIN,
@@ -131,7 +135,7 @@ describe('useShellContext', () => {
     });
 
     act(() => {
-      dispatchShellMessage({ type: 'session-ended' });
+      dispatchShellMessage({ type: 'session-ended', protocolVersion: 1 });
     });
 
     expect(result.current.isSessionValid).toBe(false);
@@ -147,7 +151,7 @@ describe('useShellContext', () => {
     });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'request-jwt-refresh' },
+      { type: 'request-jwt-refresh', protocolVersion: 1 },
       SHELL_ORIGIN,
     );
   });
@@ -157,7 +161,11 @@ describe('useShellContext', () => {
     renderHook(() => useShellContext(onNavigate), { wrapper: Wrapper });
 
     act(() => {
-      dispatchShellMessage({ type: 'navigate-to-path', path: '/projects/456' });
+      dispatchShellMessage({
+        type: 'navigate-to-path',
+        protocolVersion: 1,
+        path: '/projects/456',
+      });
     });
 
     expect(onNavigate).toHaveBeenCalledWith('/projects/456');
@@ -169,7 +177,7 @@ describe('useShellContext', () => {
     expect(result.current.theme).toBe('light');
 
     act(() => {
-      dispatchShellMessage({ type: 'theme-update', theme: 'dark' });
+      dispatchShellMessage({ type: 'theme-update', protocolVersion: 1, theme: 'dark' });
     });
 
     expect(result.current.theme).toBe('dark');
@@ -183,7 +191,7 @@ describe('useShellContext', () => {
     });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'theme-change', theme: 'dark' },
+      { type: 'theme-change', protocolVersion: 1, theme: 'dark' },
       SHELL_ORIGIN,
     );
   });
@@ -200,5 +208,59 @@ describe('useShellContext', () => {
     });
 
     expect(result.current.isEmbedded).toBe(false);
+  });
+
+  it('drops messages with a mismatched protocolVersion and warns', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    act(() => {
+      dispatchShellMessage({
+        type: 'shell-context',
+        protocolVersion: 2,
+        isEmbedded: true,
+        showBackButton: true,
+        shellOrigin: SHELL_ORIGIN,
+        jwt: 'test-jwt',
+        user: null,
+        subPath: null,
+        theme: 'light',
+      });
+    });
+
+    expect(result.current.isEmbedded).toBe(false);
+    expect(result.current.jwt).toBeNull();
+    expect(warn).toHaveBeenCalled();
+    expect(String(warn.mock.calls[0]?.[0] ?? '')).toContain('protocol mismatch');
+    warn.mockRestore();
+  });
+
+  it('drops structurally malformed messages and warns when the type is recognised', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    act(() => {
+      dispatchShellMessage({
+        type: 'shell-context',
+        protocolVersion: 1,
+        // Missing every other required field.
+      });
+    });
+
+    expect(result.current.isEmbedded).toBe(false);
+    expect(warn).toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('stays silent for unrelated postMessage traffic', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    renderHook(() => useShellContext(), { wrapper: Wrapper });
+
+    act(() => {
+      dispatchShellMessage({ type: 'totally-unrelated', foo: 'bar' });
+    });
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 });

@@ -38,7 +38,7 @@ describe('useRouteSync', () => {
     renderHook(() => useRouteSync(), { wrapper: Wrapper });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'route-change', path: '/projects/123' },
+      { type: 'route-change', protocolVersion: 1, path: '/projects/123' },
       SHELL_ORIGIN,
     );
   });

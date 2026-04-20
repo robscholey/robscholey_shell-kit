@@ -2,6 +2,27 @@
 export { ShellKitProvider, useShellKitConfig } from './ShellKitProvider';
 export type { ShellKitConfig, ShellKitProviderProps } from './ShellKitProvider';
 
+// Protocol version and message parsers
+export { PROTOCOL_VERSION, parseShellMessage, parseChildMessage } from './messages';
+
+// Message schemas (exported so consumers can compose / validate externally if needed)
+export {
+  shellUserSchema,
+  shellThemeSchema,
+  shellContextMessageSchema,
+  jwtRefreshMessageSchema,
+  sessionEndedMessageSchema,
+  navigateToPathMessageSchema,
+  themeUpdateMessageSchema,
+  navigateToShellMessageSchema,
+  jwtRefreshRequestMessageSchema,
+  requestShellContextMessageSchema,
+  routeChangeMessageSchema,
+  themeChangeMessageSchema,
+  shellToChildMessageSchema,
+  childToShellMessageSchema,
+} from './messages';
+
 // Types
 export type {
   ShellUser,

@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useShellKitConfig } from './ShellKitProvider';
 import { isInIframe } from './isInIframe';
-import type { RouteChangeMessage } from './types';
+import { PROTOCOL_VERSION } from './messages';
+import type { RouteChangeMessage } from './messages';
 
 /**
  * Syncs the child app's current pathname to the shell via postMessage.
@@ -22,7 +23,7 @@ import type { RouteChangeMessage } from './types';
  * ```tsx
  * // For react-router, use this pattern instead of useRouteSync:
  * import { useLocation } from 'react-router-dom';
- * import { useShellKitConfig } from '@robscholey/shell-kit';
+ * import { useShellKitConfig, PROTOCOL_VERSION } from '@robscholey/shell-kit';
  *
  * function RouteSync() {
  *   const { shellOrigin } = useShellKitConfig();
@@ -30,7 +31,7 @@ import type { RouteChangeMessage } from './types';
  *   useEffect(() => {
  *     if (window.self !== window.top) {
  *       window.parent.postMessage(
- *         { type: 'route-change', path: pathname },
+ *         { type: 'route-change', protocolVersion: PROTOCOL_VERSION, path: pathname },
  *         shellOrigin,
  *       );
  *     }
@@ -46,7 +47,11 @@ export function useRouteSync(): void {
   useEffect(() => {
     if (!isInIframe()) return;
 
-    const message: RouteChangeMessage = { type: 'route-change', path: pathname };
+    const message: RouteChangeMessage = {
+      type: 'route-change',
+      protocolVersion: PROTOCOL_VERSION,
+      path: pathname,
+    };
     window.parent.postMessage(message, shellOrigin);
   }, [pathname, shellOrigin]);
 }

@@ -55,7 +55,7 @@ describe('ShellBackButton', () => {
     fireEvent.click(getByRole('button'));
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'navigate-to-shell' },
+      { type: 'navigate-to-shell', protocolVersion: 1 },
       SHELL_ORIGIN,
     );
   });
@@ -90,7 +90,7 @@ describe('ShellBackButton', () => {
     fireEvent.click(getByRole('link'));
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'navigate-to-shell' },
+      { type: 'navigate-to-shell', protocolVersion: 1 },
       SHELL_ORIGIN,
     );
   });
@@ -105,7 +105,7 @@ describe('ShellBackButton', () => {
 
     expect(customOnClick).toHaveBeenCalled();
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'navigate-to-shell' },
+      { type: 'navigate-to-shell', protocolVersion: 1 },
       SHELL_ORIGIN,
     );
   });
@@ -120,7 +120,7 @@ describe('ShellBackButton', () => {
 
     expect(customOnClick).toHaveBeenCalled();
     expect(window.parent.postMessage).not.toHaveBeenCalledWith(
-      { type: 'navigate-to-shell' },
+      { type: 'navigate-to-shell', protocolVersion: 1 },
       expect.anything(),
     );
   });

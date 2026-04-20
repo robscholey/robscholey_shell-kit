@@ -18,7 +18,10 @@ describe('navigateToShell', () => {
 
     navigateToShell(SHELL_ORIGIN);
 
-    expect(postMessageSpy).toHaveBeenCalledWith({ type: 'navigate-to-shell' }, SHELL_ORIGIN);
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      { type: 'navigate-to-shell', protocolVersion: 1 },
+      SHELL_ORIGIN,
+    );
 
     // Restore
     Object.defineProperty(window, 'top', { value: window, configurable: true });

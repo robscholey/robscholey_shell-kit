@@ -1,7 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useShellKitConfig } from './ShellKitProvider';
 import { isInIframe } from './isInIframe';
-import type { ShellUser, ShellTheme, ShellToChildMessage } from './types';
+import { PROTOCOL_VERSION, parseShellMessage } from './messages';
+import type {
+  ShellUser,
+  ShellTheme,
+  JWTRefreshRequestMessage,
+  RequestShellContextMessage,
+  ThemeChangeMessage,
+} from './messages';
 
 /** The state returned by the {@link useShellContext} hook. */
 export interface ShellContextState {
@@ -28,22 +35,14 @@ export interface ShellContextState {
 /** Callback invoked when the shell tells the child to navigate to a specific path. */
 export type NavigateToPathHandler = (path: string) => void;
 
-/** Type guard for messages from the shell. */
-function isShellMessage(data: unknown): data is ShellToChildMessage {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'type' in data &&
-    typeof (data as Record<string, unknown>).type === 'string'
-  );
-}
-
 /**
  * Hook that manages communication with the robscholey.com shell via postMessage.
  * Listens for `shell-context`, `jwt-refresh`, `session-ended`, `navigate-to-path`,
  * and `theme-update` messages. Sends `request-shell-context` on mount when running
  * inside an iframe. Validates message origins against the shell origin from the
- * nearest {@link ShellKitProvider}.
+ * nearest {@link ShellKitProvider} and validates message payloads through the
+ * zod-backed shell→child schema so malformed or wrong-protocol messages drop
+ * silently (with a console warning for recognised-type mismatches).
  *
  * @param onNavigateToPath - Optional callback invoked when the shell sends a `navigate-to-path` message (browser back/forward).
  */
@@ -79,18 +78,17 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
 
     function handleMessage(event: MessageEvent) {
       if (event.origin !== shellOriginRef.current) return;
-      if (!isShellMessage(event.data)) return;
-
-      const data = event.data;
+      const data = parseShellMessage(event.data);
+      if (!data) return;
 
       if (data.type === 'shell-context') {
         setIsEmbedded(true);
-        setShowBackButton(data.showBackButton ?? false);
-        setUser(data.user ?? null);
-        setJwt(data.jwt ?? null);
+        setShowBackButton(data.showBackButton);
+        setUser(data.user);
+        setJwt(data.jwt);
         setIsSessionValid(true);
-        setSubPath(data.subPath ?? null);
-        setTheme(data.theme ?? 'light');
+        setSubPath(data.subPath);
+        setTheme(data.theme);
       }
 
       if (data.type === 'jwt-refresh') {
@@ -115,7 +113,11 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
     window.addEventListener('message', handleMessage);
 
     if (inIframe) {
-      window.parent.postMessage({ type: 'request-shell-context' }, shellOriginRef.current);
+      const message: RequestShellContextMessage = {
+        type: 'request-shell-context',
+        protocolVersion: PROTOCOL_VERSION,
+      };
+      window.parent.postMessage(message, shellOriginRef.current);
     }
 
     return () => window.removeEventListener('message', handleMessage);
@@ -123,16 +125,22 @@ export function useShellContext(onNavigateToPath?: NavigateToPathHandler): Shell
 
   const requestJWTRefresh = useCallback(() => {
     if (isInIframe()) {
-      window.parent.postMessage({ type: 'request-jwt-refresh' }, shellOriginRef.current);
+      const message: JWTRefreshRequestMessage = {
+        type: 'request-jwt-refresh',
+        protocolVersion: PROTOCOL_VERSION,
+      };
+      window.parent.postMessage(message, shellOriginRef.current);
     }
   }, []);
 
   const requestThemeChange = useCallback((newTheme: ShellTheme) => {
     if (isInIframe()) {
-      window.parent.postMessage(
-        { type: 'theme-change', theme: newTheme },
-        shellOriginRef.current,
-      );
+      const message: ThemeChangeMessage = {
+        type: 'theme-change',
+        protocolVersion: PROTOCOL_VERSION,
+        theme: newTheme,
+      };
+      window.parent.postMessage(message, shellOriginRef.current);
     }
   }, []);
 

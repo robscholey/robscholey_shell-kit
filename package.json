@@ -3,16 +3,30 @@
   "version": "0.1.0",
   "description": "Shared postMessage protocol, React hooks, and TanStack Query integration for robscholey.com sub-apps",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./ui": "./src/ui/index.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.mjs",
+      "require": "./dist/ui/index.js"
+    },
     "./ui/theme.css": "./src/ui/theme.css"
   },
   "files": [
-    "src"
+    "dist",
+    "src/ui/theme.css"
   ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "scripts": {
     "build": "tsup && tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist",
     "dev": "tsup --watch",
@@ -71,7 +85,8 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.2",
     "tailwindcss-animate": "^1.0.7",
-    "vaul": "^1.1.2"
+    "vaul": "^1.1.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",

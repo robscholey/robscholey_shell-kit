@@ -13,13 +13,15 @@ describe('types', () => {
     expectTypeOf<ShellUser>().toHaveProperty('type');
   });
 
-  it('ShellContextMessage includes subPath', () => {
+  it('ShellContextMessage includes subPath and protocolVersion', () => {
     expectTypeOf<ShellContextMessage>().toHaveProperty('subPath');
+    expectTypeOf<ShellContextMessage>().toHaveProperty('protocolVersion');
   });
 
   it('ShellToChildMessage discriminates on type field', () => {
     const msg: ShellToChildMessage = {
       type: 'shell-context',
+      protocolVersion: 1,
       isEmbedded: true,
       showBackButton: false,
       shellOrigin: 'https://robscholey.com',
@@ -35,7 +37,11 @@ describe('types', () => {
   });
 
   it('ChildToShellMessage discriminates on type field', () => {
-    const msg: ChildToShellMessage = { type: 'route-change', path: '/foo' };
+    const msg: ChildToShellMessage = {
+      type: 'route-change',
+      protocolVersion: 1,
+      path: '/foo',
+    };
     if (msg.type === 'route-change') {
       expectTypeOf(msg.path).toBeString();
     }
