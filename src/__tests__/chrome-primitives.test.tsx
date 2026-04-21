@@ -4,6 +4,7 @@ import { BottomNav, BottomNavItem } from '@/ui/components/bottom-nav';
 import { FAB } from '@/ui/components/fab';
 import { SegmentedControl, SegmentedControlItem } from '@/ui/components/segmented-control';
 import { Chip } from '@/ui/components/chip';
+import { Avatar, AvatarFallback } from '@/ui/components/avatar';
 
 describe('BottomNav', () => {
   it('renders a <nav> with the primary navigation label', () => {
@@ -220,5 +221,48 @@ describe('Chip', () => {
     const { getByRole } = render(<Chip onClick={onClick}>codes</Chip>);
     fireEvent.click(getByRole('button'));
     expect(onClick).toHaveBeenCalledOnce();
+  });
+});
+
+describe('Avatar presence', () => {
+  it('renders no presence dot when presence is undefined', () => {
+    const { container } = render(
+      <Avatar>
+        <AvatarFallback>RS</AvatarFallback>
+      </Avatar>,
+    );
+    expect(container.querySelector('[data-presence]')).toBeNull();
+  });
+
+  it('renders a live presence dot with brand colour and halo', () => {
+    const { container } = render(
+      <Avatar presence="live">
+        <AvatarFallback>RS</AvatarFallback>
+      </Avatar>,
+    );
+    const dot = container.querySelector('[data-presence="live"]');
+    expect(dot).not.toBeNull();
+    expect(dot?.className).toContain('bg-brand');
+    expect(dot?.className).toContain('shadow-');
+  });
+
+  it('renders an idle presence dot with warm colour', () => {
+    const { container } = render(
+      <Avatar presence="idle">
+        <AvatarFallback>RS</AvatarFallback>
+      </Avatar>,
+    );
+    const dot = container.querySelector('[data-presence="idle"]');
+    expect(dot?.className).toContain('bg-warm');
+  });
+
+  it('renders an off presence dot with subtle-foreground colour', () => {
+    const { container } = render(
+      <Avatar presence="off">
+        <AvatarFallback>RS</AvatarFallback>
+      </Avatar>,
+    );
+    const dot = container.querySelector('[data-presence="off"]');
+    expect(dot?.className).toContain('bg-subtle-foreground');
   });
 });

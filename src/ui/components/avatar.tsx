@@ -1,20 +1,54 @@
 import * as AvatarPrimitive from '@radix-ui/react-avatar';
 import { cn } from '../lib/cn';
 
+/** Presence variants surfaced as a small dot overlay on {@link Avatar}. */
+export type AvatarPresence = 'live' | 'idle' | 'off';
+
+/** Props accepted by {@link Avatar}. */
+export type AvatarProps = React.ComponentPropsWithRef<typeof AvatarPrimitive.Root> & {
+  /**
+   * Optional presence indicator overlaid on the bottom-right of the avatar.
+   * - `live` — brand-coloured dot with a halo (active now).
+   * - `idle` — warm-coloured dot (recently active).
+   * - `off` — muted grey dot (offline).
+   *
+   * Omit (or pass `undefined`) to render no overlay.
+   */
+  presence?: AvatarPresence;
+};
+
 /**
  * A circular avatar container. Defaults to the tinted `--primary` surface
  * with a `--brand-dim` outline — matching the mono-font initial-cap treatment
- * from the reference design.
+ * from the reference design. Accepts an optional `presence` prop that
+ * overlays a status dot on the bottom-right.
  */
-function Avatar({ className, ...props }: React.ComponentPropsWithRef<typeof AvatarPrimitive.Root>) {
+function Avatar({ className, children, presence, ...props }: AvatarProps) {
   return (
     <AvatarPrimitive.Root
       className={cn(
-        'relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-dim bg-primary text-primary-foreground font-mono text-[0.82rem] font-medium',
+        'relative inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-visible rounded-full border border-brand-dim bg-primary text-primary-foreground font-mono text-[0.82rem] font-medium',
         className,
       )}
       {...props}
-    />
+    >
+      <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full">
+        {children}
+      </span>
+      {presence !== undefined && (
+        <span
+          aria-hidden
+          data-presence={presence}
+          className={cn(
+            'absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full ring-2 ring-background',
+            presence === 'live' &&
+              'bg-brand shadow-[0_0_0_3px_var(--brand-glow)]',
+            presence === 'idle' && 'bg-warm',
+            presence === 'off' && 'bg-subtle-foreground',
+          )}
+        />
+      )}
+    </AvatarPrimitive.Root>
   );
 }
 
