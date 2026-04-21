@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { BottomNav, BottomNavItem } from '@/ui/components/bottom-nav';
+import { FAB } from '@/ui/components/fab';
 
 describe('BottomNav', () => {
   it('renders a <nav> with the primary navigation label', () => {
@@ -94,5 +95,45 @@ describe('BottomNavItem', () => {
   it('does not render the badge when badge is undefined', () => {
     const { container } = render(<BottomNavItem icon={<svg />}>Messages</BottomNavItem>);
     expect(container.querySelector('.bg-warm')).toBeNull();
+  });
+});
+
+describe('FAB', () => {
+  it('renders as a <button type="button"> by default', () => {
+    const { getByRole } = render(<FAB aria-label="New">+</FAB>);
+    const button = getByRole('button');
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.getAttribute('type')).toBe('button');
+    expect(button.textContent).toBe('+');
+  });
+
+  it('invokes onClick when pressed', () => {
+    const onClick = vi.fn();
+    const { getByRole } = render(
+      <FAB aria-label="New" onClick={onClick}>
+        +
+      </FAB>,
+    );
+    fireEvent.click(getByRole('button'));
+    expect(onClick).toHaveBeenCalledOnce();
+  });
+
+  it('applies fixed positioning and brand colours', () => {
+    const { getByRole } = render(<FAB aria-label="New">+</FAB>);
+    const button = getByRole('button');
+    expect(button.className).toContain('fixed');
+    expect(button.className).toContain('bg-brand');
+    expect(button.className).toContain('text-brand-deep');
+  });
+
+  it('forwards arbitrary HTML attributes', () => {
+    const { getByRole } = render(
+      <FAB aria-label="Mint" data-testid="fab-probe">
+        +
+      </FAB>,
+    );
+    const button = getByRole('button');
+    expect(button.getAttribute('data-testid')).toBe('fab-probe');
+    expect(button.getAttribute('aria-label')).toBe('Mint');
   });
 });
