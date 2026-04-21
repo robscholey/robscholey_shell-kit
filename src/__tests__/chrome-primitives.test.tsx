@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { BottomNav, BottomNavItem } from '@/ui/components/bottom-nav';
 import { FAB } from '@/ui/components/fab';
+import { SegmentedControl, SegmentedControlItem } from '@/ui/components/segmented-control';
+import { Chip } from '@/ui/components/chip';
 
 describe('BottomNav', () => {
   it('renders a <nav> with the primary navigation label', () => {
@@ -135,5 +137,88 @@ describe('FAB', () => {
     const button = getByRole('button');
     expect(button.getAttribute('data-testid')).toBe('fab-probe');
     expect(button.getAttribute('aria-label')).toBe('Mint');
+  });
+});
+
+describe('SegmentedControl', () => {
+  it('renders items and reflects the default value via data-state="on"', () => {
+    const { getByText } = render(
+      <SegmentedControl defaultValue="avail">
+        <SegmentedControlItem value="avail">available</SegmentedControlItem>
+        <SegmentedControlItem value="away">away</SegmentedControlItem>
+      </SegmentedControl>,
+    );
+    const avail = getByText('available').closest('button');
+    const away = getByText('away').closest('button');
+    expect(avail?.getAttribute('data-state')).toBe('on');
+    expect(away?.getAttribute('data-state')).toBe('off');
+  });
+
+  it('fires onValueChange with the newly-selected value', () => {
+    const onValueChange = vi.fn();
+    const { getByText } = render(
+      <SegmentedControl defaultValue="avail" onValueChange={onValueChange}>
+        <SegmentedControlItem value="avail">available</SegmentedControlItem>
+        <SegmentedControlItem value="away">away</SegmentedControlItem>
+      </SegmentedControl>,
+    );
+    fireEvent.click(getByText('away'));
+    expect(onValueChange).toHaveBeenCalledWith('away');
+  });
+
+  it('ignores deselect events so one item stays active', () => {
+    const onValueChange = vi.fn();
+    const { getByText } = render(
+      <SegmentedControl defaultValue="avail" onValueChange={onValueChange}>
+        <SegmentedControlItem value="avail">available</SegmentedControlItem>
+        <SegmentedControlItem value="away">away</SegmentedControlItem>
+      </SegmentedControl>,
+    );
+    // Clicking the currently-active item triggers a deselect in Radix; we
+    // suppress it so the control never enters an empty state.
+    fireEvent.click(getByText('available'));
+    expect(onValueChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('Chip', () => {
+  it('renders a <button type="button"> with the label', () => {
+    const { getByRole } = render(<Chip>codes</Chip>);
+    const btn = getByRole('button');
+    expect(btn.tagName).toBe('BUTTON');
+    expect(btn.getAttribute('type')).toBe('button');
+    expect(btn.textContent).toContain('codes');
+  });
+
+  it('renders the count suffix when provided', () => {
+    const { getByText } = render(<Chip count={14}>codes</Chip>);
+    expect(getByText('14')).toBeDefined();
+  });
+
+  it('omits the count suffix when count is undefined', () => {
+    const { container } = render(<Chip>codes</Chip>);
+    const spans = container.querySelectorAll('span');
+    expect(spans.length).toBe(0);
+  });
+
+  it('tints text and border in --brand when active', () => {
+    const { getByRole } = render(<Chip active>codes</Chip>);
+    const btn = getByRole('button');
+    expect(btn.getAttribute('data-active')).toBe('true');
+    expect(btn.getAttribute('aria-pressed')).toBe('true');
+    expect(btn.className).toContain('text-brand');
+  });
+
+  it('sets aria-pressed="false" when not active', () => {
+    const { getByRole } = render(<Chip>codes</Chip>);
+    const btn = getByRole('button');
+    expect(btn.getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('invokes onClick when pressed', () => {
+    const onClick = vi.fn();
+    const { getByRole } = render(<Chip onClick={onClick}>codes</Chip>);
+    fireEvent.click(getByRole('button'));
+    expect(onClick).toHaveBeenCalledOnce();
   });
 });

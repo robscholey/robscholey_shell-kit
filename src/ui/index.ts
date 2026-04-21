@@ -210,3 +210,12 @@ export type { BottomNavProps, BottomNavItemProps } from './components/bottom-nav
 
 export { FAB } from './components/fab';
 export type { FABProps } from './components/fab';
+
+export { SegmentedControl, SegmentedControlItem } from './components/segmented-control';
+export type {
+  SegmentedControlProps,
+  SegmentedControlItemProps,
+} from './components/segmented-control';
+
+export { Chip } from './components/chip';
+export type { ChipProps } from './components/chip';
