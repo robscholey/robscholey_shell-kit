@@ -1,11 +1,8 @@
-// Configuration + theme/accent state
-export { ShellKitProvider, useShellKitConfig, useTheme, useAccent } from './ShellKitProvider';
-export type {
-  ShellKitConfig,
-  ShellKitProviderProps,
-  UseThemeResult,
-  UseAccentResult,
-} from './ShellKitProvider';
+// Shell-kit configuration. Theme + accent ownership moved out of the
+// provider in Phase I.6 — pages declare via <PageTheme> / <ThemeCandy>,
+// sub-app layouts render the admin-configured default into <html data-*>.
+export { ShellKitProvider, useShellKitConfig } from './ShellKitProvider';
+export type { ShellKitConfig, ShellKitProviderProps } from './ShellKitProvider';
 
 // Page + subtree theming primitives. Pages declare their accent + theme
 // in markup; these express the contract through the React tree.
