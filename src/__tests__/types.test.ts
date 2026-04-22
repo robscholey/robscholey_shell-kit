@@ -21,14 +21,13 @@ describe('types', () => {
   it('ShellToChildMessage discriminates on type field', () => {
     const msg: ShellToChildMessage = {
       type: 'shell-context',
-      protocolVersion: 1,
+      protocolVersion: 2,
       isEmbedded: true,
       showBackButton: false,
       shellOrigin: 'https://robscholey.com',
       jwt: null,
       user: null,
       subPath: null,
-      theme: 'light',
     };
     if (msg.type === 'shell-context') {
       expectTypeOf(msg.shellOrigin).toBeString();
@@ -39,7 +38,7 @@ describe('types', () => {
   it('ChildToShellMessage discriminates on type field', () => {
     const msg: ChildToShellMessage = {
       type: 'route-change',
-      protocolVersion: 1,
+      protocolVersion: 2,
       path: '/foo',
     };
     if (msg.type === 'route-change') {

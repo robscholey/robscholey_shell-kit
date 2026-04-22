@@ -22,8 +22,6 @@ const shellToChildValid = {
     jwt: null,
     user: null,
     subPath: null,
-    theme: 'light' as const,
-    accent: 'teal' as const,
   },
   'jwt-refresh': {
     type: 'jwt-refresh' as const,
@@ -38,16 +36,6 @@ const shellToChildValid = {
     type: 'navigate-to-path' as const,
     protocolVersion: PROTOCOL_VERSION,
     path: '/projects/1',
-  },
-  'theme-update': {
-    type: 'theme-update' as const,
-    protocolVersion: PROTOCOL_VERSION,
-    theme: 'dark' as const,
-  },
-  'accent-update': {
-    type: 'accent-update' as const,
-    protocolVersion: PROTOCOL_VERSION,
-    accent: 'indigo' as const,
   },
 };
 
@@ -69,15 +57,11 @@ const childToShellValid = {
     protocolVersion: PROTOCOL_VERSION,
     path: '/projects/1',
   },
-  'theme-change': {
-    type: 'theme-change' as const,
+  'page-theme': {
+    type: 'page-theme' as const,
     protocolVersion: PROTOCOL_VERSION,
     theme: 'dark' as const,
-  },
-  'accent-change': {
-    type: 'accent-change' as const,
-    protocolVersion: PROTOCOL_VERSION,
-    accent: 'rose' as const,
+    accent: 'betway' as const,
   },
 };
 
@@ -86,8 +70,8 @@ afterEach(() => {
 });
 
 describe('PROTOCOL_VERSION', () => {
-  it('is pinned to 1 for the initial wire format', () => {
-    expect(PROTOCOL_VERSION).toBe(1);
+  it('is pinned to 2 for the page-owned-theming wire format', () => {
+    expect(PROTOCOL_VERSION).toBe(2);
   });
 });
 
@@ -102,7 +86,7 @@ describe('shellToChildMessageSchema', () => {
   it.each(Object.entries(shellToChildValid))(
     'rejects a %s message with the wrong protocolVersion',
     (_type, payload) => {
-      const result = shellToChildMessageSchema.safeParse({ ...payload, protocolVersion: 2 });
+      const result = shellToChildMessageSchema.safeParse({ ...payload, protocolVersion: 1 });
       expect(result.success).toBe(false);
     },
   );
@@ -115,43 +99,26 @@ describe('shellToChildMessageSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects theme-update with an invalid theme value', () => {
-    const result = shellToChildMessageSchema.safeParse({
-      ...shellToChildValid['theme-update'],
-      theme: 'neon',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('accepts shell-context without the accent field (transitional v1 shells)', () => {
-    const withoutAccent: Record<string, unknown> = { ...shellToChildValid['shell-context'] };
-    delete withoutAccent.accent;
-    const result = shellToChildMessageSchema.safeParse(withoutAccent);
-    expect(result.success).toBe(true);
-  });
-
-  it('rejects shell-context with an unknown accent value', () => {
-    const result = shellToChildMessageSchema.safeParse({
-      ...shellToChildValid['shell-context'],
-      accent: 'cyberpunk',
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it('rejects accent-update with an unknown accent value', () => {
-    const result = shellToChildMessageSchema.safeParse({
-      ...shellToChildValid['accent-update'],
-      accent: 'cyberpunk',
-    });
-    expect(result.success).toBe(false);
-  });
-
   it('rejects messages with an unknown type', () => {
     const result = shellToChildMessageSchema.safeParse({
       type: 'definitely-not-a-real-message',
       protocolVersion: PROTOCOL_VERSION,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('rejects pre-v2 shell-context that still carried theme + accent fields', () => {
+    // The v1 shell-context schema included theme + accent. v2 strict-parses
+    // with discriminated union, so extra unknown fields are silently
+    // accepted by zod's default behaviour — but the protocolVersion check
+    // catches the v1 payload first. This test pins that contract.
+    const v1Payload = {
+      ...shellToChildValid['shell-context'],
+      protocolVersion: 1,
+      theme: 'dark',
+      accent: 'teal',
+    };
+    expect(shellToChildMessageSchema.safeParse(v1Payload).success).toBe(false);
   });
 });
 
@@ -166,7 +133,7 @@ describe('childToShellMessageSchema', () => {
   it.each(Object.entries(childToShellValid))(
     'rejects a %s message with the wrong protocolVersion',
     (_type, payload) => {
-      const result = childToShellMessageSchema.safeParse({ ...payload, protocolVersion: 2 });
+      const result = childToShellMessageSchema.safeParse({ ...payload, protocolVersion: 1 });
       expect(result.success).toBe(false);
     },
   );
@@ -179,17 +146,27 @@ describe('childToShellMessageSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects theme-change with an invalid theme value', () => {
+  it('accepts page-theme with both fields nullable (no override declared)', () => {
     const result = childToShellMessageSchema.safeParse({
-      ...childToShellValid['theme-change'],
+      type: 'page-theme',
+      protocolVersion: PROTOCOL_VERSION,
+      theme: null,
+      accent: null,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects page-theme with an invalid theme value', () => {
+    const result = childToShellMessageSchema.safeParse({
+      ...childToShellValid['page-theme'],
       theme: 'neon',
     });
     expect(result.success).toBe(false);
   });
 
-  it('rejects accent-change with an unknown accent value', () => {
+  it('rejects page-theme with an unknown accent value', () => {
     const result = childToShellMessageSchema.safeParse({
-      ...childToShellValid['accent-change'],
+      ...childToShellValid['page-theme'],
       accent: 'cyberpunk',
     });
     expect(result.success).toBe(false);
@@ -206,7 +183,7 @@ describe('parseShellMessage', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const result = parseShellMessage({
       ...shellToChildValid['shell-context'],
-      protocolVersion: 2,
+      protocolVersion: 1,
     });
 
     expect(result).toBeNull();
@@ -247,6 +224,11 @@ describe('parseChildMessage', () => {
   it('returns the parsed message for a valid payload', () => {
     const result = parseChildMessage(childToShellValid['route-change']);
     expect(result).toEqual(childToShellValid['route-change']);
+  });
+
+  it('returns the parsed page-theme message for a valid payload', () => {
+    const result = parseChildMessage(childToShellValid['page-theme']);
+    expect(result).toEqual(childToShellValid['page-theme']);
   });
 
   it('returns null and warns on a known-type protocol mismatch', () => {

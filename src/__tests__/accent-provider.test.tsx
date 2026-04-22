@@ -23,11 +23,6 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function dispatchShellMessage(data: Record<string, unknown>): void {
-  const event = new MessageEvent('message', { data, origin: SHELL_ORIGIN });
-  window.dispatchEvent(event);
-}
-
 describe('ShellKitProvider theme + accent state', () => {
   it('applies defaultTheme and defaultAccent to the documentElement dataset', () => {
     render(
@@ -112,79 +107,11 @@ describe('ShellKitProvider theme + accent state', () => {
     expect(window.localStorage.getItem('rs-theme')).toBe('light');
   });
 
-  it('applies accent-update from the shell origin', () => {
-    const { result } = renderHook(() => useAccent(), { wrapper: Wrapper });
-
-    act(() => {
-      dispatchShellMessage({ type: 'accent-update', protocolVersion: 1, accent: 'betway' });
-    });
-
-    expect(result.current.accent).toBe('betway');
-    expect(document.documentElement.dataset.accent).toBe('betway');
-  });
-
-  it('applies theme-update from the shell origin', () => {
-    const { result } = renderHook(() => useTheme(), { wrapper: Wrapper });
-
-    act(() => {
-      dispatchShellMessage({ type: 'theme-update', protocolVersion: 1, theme: 'light' });
-    });
-
-    expect(result.current.theme).toBe('light');
-    expect(document.documentElement.dataset.theme).toBe('light');
-  });
-
-  it('ignores accent-update from an unexpected origin', () => {
-    const { result } = renderHook(() => useAccent(), { wrapper: Wrapper });
-
-    act(() => {
-      const event = new MessageEvent('message', {
-        data: { type: 'accent-update', protocolVersion: 1, accent: 'rose' },
-        origin: 'https://evil.example',
-      });
-      window.dispatchEvent(event);
-    });
-
-    expect(result.current.accent).toBe('teal');
-  });
-
-  it('posts accent-change to the shell when mounted inside an iframe', () => {
-    Object.defineProperty(window, 'top', { value: {}, configurable: true });
-    Object.defineProperty(window, 'parent', {
-      value: { postMessage: vi.fn() },
-      configurable: true,
-    });
-
-    const { result } = renderHook(() => useAccent(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.setAccent('fsgb');
-    });
-
-    expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'accent-change', protocolVersion: 1, accent: 'fsgb' },
-      SHELL_ORIGIN,
-    );
-  });
-
-  it('posts theme-change to the shell when mounted inside an iframe', () => {
-    Object.defineProperty(window, 'top', { value: {}, configurable: true });
-    Object.defineProperty(window, 'parent', {
-      value: { postMessage: vi.fn() },
-      configurable: true,
-    });
-
-    const { result } = renderHook(() => useTheme(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.setTheme('light');
-    });
-
-    expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'theme-change', protocolVersion: 1, theme: 'light' },
-      SHELL_ORIGIN,
-    );
-  });
+  // The cross-iframe broadcast tests (apply theme-update / accent-update,
+  // post theme-change / accent-change) covered the v1 shell-broadcast model
+  // that Phase I.5 removed. Theme + accent are now page-owned: pages
+  // declare via <PageTheme>, the shell observes via page-theme. There's no
+  // shell→child theme push and no child→shell theme request in v2.
 
   it('useAccent throws when used outside a provider', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

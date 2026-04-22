@@ -1,13 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { isInIframe } from './isInIframe';
-import { PROTOCOL_VERSION, parseShellMessage } from './messages';
-import type {
-  Accent,
-  AccentChangeMessage,
-  ShellTheme,
-  ThemeChangeMessage,
-} from './messages';
+import type { Accent, ShellTheme } from './messages';
 
 /** Configuration options for shell-kit. */
 export interface ShellKitConfig {
@@ -93,20 +86,14 @@ function readStoredEnum<T extends string>(
  * hooks and components. Wrap your app once, near the root, with the shell
  * origin for the current environment.
  *
- * The provider is designed to run in both contexts:
- * - In the shell itself (not inside an iframe) it owns the theme/accent
- *   state locally and writes it to `<html data-theme>` / `<html data-accent>`.
- * - In a sub-app rendered inside the shell iframe it still owns local
- *   state but additionally posts `theme-change` / `accent-change` messages
- *   to the parent so the shell (which is the source of truth in that
- *   topology) can broadcast updates to every other iframe.
+ * In Phase I the provider transitioned to a "page is the source of truth"
+ * model: the layout SSR-renders `<html data-theme>` / `<html data-accent>`
+ * from the admin-configured per-app default, and `<PageTheme>` overrides
+ * those at the route level. The provider keeps local state + a
+ * `localStorage` cache as a transitional bridge — Phase I.6 strips that out
+ * entirely and removes the `useTheme` / `useAccent` hooks.
  *
- * In either context the provider also listens for `theme-update` /
- * `accent-update` messages from the configured `shellOrigin` and applies
- * them without re-broadcasting — cross-origin validation is enforced the
- * same way {@link useShellContext} does it.
- *
- * Also raises a browser `alert()` on mount when the configured `shellOrigin`
+ * Raises a browser `alert()` on mount when the configured `shellOrigin`
  * points at localhost while the page is running on a non-localhost origin —
  * that combination usually means `NEXT_PUBLIC_SHELL_ORIGIN` (or equivalent)
  * was unset at build time. postMessage cross-origin checks would fail
@@ -186,47 +173,18 @@ export function ShellKitProvider({
     }
   }, [accent]);
 
-  // Listen for theme / accent updates from the shell. Apply them silently —
-  // re-broadcasting would create an infinite ping-pong between shell and
-  // child once the shell decides to echo state back.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    function handleMessage(event: MessageEvent) {
-      if (event.origin !== shellOriginRef.current) return;
-      const data = parseShellMessage(event.data);
-      if (!data) return;
-
-      if (data.type === 'theme-update') setThemeState(data.theme);
-      if (data.type === 'accent-update') setAccentState(data.accent);
-    }
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
+  // Phase I.5 removed the protocol's `theme-update` / `accent-update` /
+  // `theme-change` / `accent-change` messages. Setters now update local
+  // state (and persist via the html-dataset effect above); cross-iframe
+  // theme propagation has been replaced by `<PageTheme>`'s page-theme
+  // notification flowing child → shell, with the shell observing rather
+  // than authoring.
   const setTheme = useCallback((next: ShellTheme) => {
     setThemeState(next);
-    if (isInIframe()) {
-      const message: ThemeChangeMessage = {
-        type: 'theme-change',
-        protocolVersion: PROTOCOL_VERSION,
-        theme: next,
-      };
-      window.parent.postMessage(message, shellOriginRef.current);
-    }
   }, []);
 
   const setAccent = useCallback((next: Accent) => {
     setAccentState(next);
-    if (isInIframe()) {
-      const message: AccentChangeMessage = {
-        type: 'accent-change',
-        protocolVersion: PROTOCOL_VERSION,
-        accent: next,
-      };
-      window.parent.postMessage(message, shellOriginRef.current);
-    }
   }, []);
 
   const value: ShellKitContextValue = { config, theme, accent, setTheme, setAccent };

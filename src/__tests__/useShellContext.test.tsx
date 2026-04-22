@@ -37,7 +37,7 @@ describe('useShellContext', () => {
     renderHook(() => useShellContext(), { wrapper: Wrapper });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'request-shell-context', protocolVersion: 1 },
+      { type: 'request-shell-context', protocolVersion: 2 },
       SHELL_ORIGIN,
     );
   });
@@ -48,15 +48,13 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
-        protocolVersion: 1,
+        protocolVersion: 2,
         isEmbedded: true,
         showBackButton: true,
         shellOrigin: SHELL_ORIGIN,
         jwt: 'test-jwt',
         user: { id: '1', name: 'Rob', type: 'owner' },
         subPath: '/projects/123',
-        theme: 'dark',
-        accent: 'indigo',
       });
     });
 
@@ -66,28 +64,6 @@ describe('useShellContext', () => {
     expect(result.current.user).toEqual({ id: '1', name: 'Rob', type: 'owner' });
     expect(result.current.subPath).toBe('/projects/123');
     expect(result.current.isSessionValid).toBe(true);
-    expect(result.current.theme).toBe('dark');
-    expect(result.current.accent).toBe('indigo');
-  });
-
-  it('falls back to teal when shell-context arrives without accent', () => {
-    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
-
-    act(() => {
-      dispatchShellMessage({
-        type: 'shell-context',
-        protocolVersion: 1,
-        isEmbedded: true,
-        showBackButton: false,
-        shellOrigin: SHELL_ORIGIN,
-        jwt: null,
-        user: null,
-        subPath: null,
-        theme: 'dark',
-      });
-    });
-
-    expect(result.current.accent).toBe('teal');
   });
 
   it('rejects messages from invalid origins', () => {
@@ -97,14 +73,13 @@ describe('useShellContext', () => {
       const event = new MessageEvent('message', {
         data: {
           type: 'shell-context',
-          protocolVersion: 1,
+          protocolVersion: 2,
           isEmbedded: true,
           showBackButton: true,
           shellOrigin: 'https://evil.com',
           jwt: 'evil-jwt',
           user: null,
           subPath: null,
-          theme: 'dark',
         },
         origin: 'https://evil.com',
       });
@@ -121,19 +96,18 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
-        protocolVersion: 1,
+        protocolVersion: 2,
         isEmbedded: true,
         showBackButton: false,
         shellOrigin: SHELL_ORIGIN,
         jwt: 'old-jwt',
         user: null,
         subPath: null,
-        theme: 'light',
       });
     });
 
     act(() => {
-      dispatchShellMessage({ type: 'jwt-refresh', protocolVersion: 1, jwt: 'new-jwt' });
+      dispatchShellMessage({ type: 'jwt-refresh', protocolVersion: 2, jwt: 'new-jwt' });
     });
 
     expect(result.current.jwt).toBe('new-jwt');
@@ -145,19 +119,18 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
-        protocolVersion: 1,
+        protocolVersion: 2,
         isEmbedded: true,
         showBackButton: false,
         shellOrigin: SHELL_ORIGIN,
         jwt: 'test-jwt',
         user: { id: '1', name: 'Rob', type: 'owner' },
         subPath: null,
-        theme: 'light',
       });
     });
 
     act(() => {
-      dispatchShellMessage({ type: 'session-ended', protocolVersion: 1 });
+      dispatchShellMessage({ type: 'session-ended', protocolVersion: 2 });
     });
 
     expect(result.current.isSessionValid).toBe(false);
@@ -173,7 +146,7 @@ describe('useShellContext', () => {
     });
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'request-jwt-refresh', protocolVersion: 1 },
+      { type: 'request-jwt-refresh', protocolVersion: 2 },
       SHELL_ORIGIN,
     );
   });
@@ -185,62 +158,12 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'navigate-to-path',
-        protocolVersion: 1,
+        protocolVersion: 2,
         path: '/projects/456',
       });
     });
 
     expect(onNavigate).toHaveBeenCalledWith('/projects/456');
-  });
-
-  it('updates theme on theme-update message', () => {
-    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
-
-    expect(result.current.theme).toBe('light');
-
-    act(() => {
-      dispatchShellMessage({ type: 'theme-update', protocolVersion: 1, theme: 'dark' });
-    });
-
-    expect(result.current.theme).toBe('dark');
-  });
-
-  it('requestThemeChange sends theme-change postMessage', () => {
-    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.requestThemeChange('dark');
-    });
-
-    expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'theme-change', protocolVersion: 1, theme: 'dark' },
-      SHELL_ORIGIN,
-    );
-  });
-
-  it('updates accent on accent-update message', () => {
-    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
-
-    expect(result.current.accent).toBe('teal');
-
-    act(() => {
-      dispatchShellMessage({ type: 'accent-update', protocolVersion: 1, accent: 'rose' });
-    });
-
-    expect(result.current.accent).toBe('rose');
-  });
-
-  it('requestAccentChange sends accent-change postMessage', () => {
-    const { result } = renderHook(() => useShellContext(), { wrapper: Wrapper });
-
-    act(() => {
-      result.current.requestAccentChange('fsgb');
-    });
-
-    expect(window.parent.postMessage).toHaveBeenCalledWith(
-      { type: 'accent-change', protocolVersion: 1, accent: 'fsgb' },
-      SHELL_ORIGIN,
-    );
   });
 
   it('ignores messages that are not valid shell messages', () => {
@@ -264,13 +187,16 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
-        protocolVersion: 2,
+        // v1 — pre-Phase-I message, should be refused now that we're on v2
+        protocolVersion: 1,
         isEmbedded: true,
         showBackButton: true,
         shellOrigin: SHELL_ORIGIN,
         jwt: 'test-jwt',
         user: null,
         subPath: null,
+        // v1 carried `theme` here too — included in the test fixture so the
+        // v1 payload is realistic, but it's unused by the v2 receiver.
         theme: 'light',
       });
     });
@@ -289,7 +215,7 @@ describe('useShellContext', () => {
     act(() => {
       dispatchShellMessage({
         type: 'shell-context',
-        protocolVersion: 1,
+        protocolVersion: 2,
         // Missing every other required field.
       });
     });

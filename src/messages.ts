@@ -7,8 +7,13 @@ import { z } from 'zod';
  * shells and children refuse to talk to a newer peer instead of silently
  * misinterpreting a field. Receivers drop any message whose `protocolVersion`
  * does not match this constant.
+ *
+ * v2 (Phase I): theme / accent are page-owned, declared via `<PageTheme>`
+ * and reported up to the shell via `page-theme`. The old shell-driven
+ * `theme-change` / `accent-change` / `theme-update` / `accent-update`
+ * messages are removed; `shell-context` no longer carries `theme` / `accent`.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 const protocolVersion = z.literal(PROTOCOL_VERSION);
 
@@ -34,7 +39,13 @@ export const ACCENTS = ['teal', 'warm', 'mono', 'rose', 'indigo', 'betway', 'fsg
 /** The active accent variant. */
 export const accentSchema = z.enum(ACCENTS);
 
-/** Sent by the shell to provide the embedding context to a child app. */
+/**
+ * Sent by the shell to provide the embedding context to a child app.
+ *
+ * As of protocol v2 this no longer carries `theme` / `accent` — the page is
+ * the source of truth for both, and the shell observes the child's declared
+ * values via `page-theme` instead.
+ */
 export const shellContextMessageSchema = z.object({
   type: z.literal('shell-context'),
   protocolVersion,
@@ -47,12 +58,6 @@ export const shellContextMessageSchema = z.object({
   jwt: z.string().nullable(),
   user: shellUserSchema.nullable(),
   subPath: z.string().nullable(),
-  theme: shellThemeSchema,
-  // Optional in v1 as a transitional state — the current shell-application
-  // build doesn't yet emit `accent`, so leaving it optional here lets the
-  // new child receiver keep accepting older shell-context payloads. A
-  // follow-up commit tightens this to required once the shell is updated.
-  accent: accentSchema.optional(),
 });
 
 /** Sent by the shell when a JWT has been refreshed. */
@@ -73,20 +78,6 @@ export const navigateToPathMessageSchema = z.object({
   type: z.literal('navigate-to-path'),
   protocolVersion,
   path: z.string(),
-});
-
-/** Sent by the shell when the theme changes (user toggle or system preference change). */
-export const themeUpdateMessageSchema = z.object({
-  type: z.literal('theme-update'),
-  protocolVersion,
-  theme: shellThemeSchema,
-});
-
-/** Sent by the shell when the accent changes (user picker, account default, etc.). */
-export const accentUpdateMessageSchema = z.object({
-  type: z.literal('accent-update'),
-  protocolVersion,
-  accent: accentSchema,
 });
 
 /** Sent by a child app to navigate back to the shell's root. */
@@ -114,18 +105,24 @@ export const routeChangeMessageSchema = z.object({
   path: z.string(),
 });
 
-/** Sent by a child app to request a theme change. The shell is the source of truth. */
-export const themeChangeMessageSchema = z.object({
-  type: z.literal('theme-change'),
+/**
+ * Sent by a child app to declare its current page-level theme + accent.
+ *
+ * The page is the source of truth: this is a notification (not a request),
+ * fired on `<PageTheme>` mount and prop change. The shell stores the
+ * latest declaration per iframe so future cross-cutting chrome (chat
+ * bubble, messaging surfaces) can render in the matching visual language.
+ *
+ * `null` for either field means "this page declares no override; the shell
+ * should fall through to the iframe's layout default" — which in practice
+ * matches whatever was rendered into `<html data-*>` by the layout's SSR
+ * fetch of the admin-configured per-app default.
+ */
+export const pageThemeMessageSchema = z.object({
+  type: z.literal('page-theme'),
   protocolVersion,
-  theme: shellThemeSchema,
-});
-
-/** Sent by a child app to request an accent change. The shell is the source of truth. */
-export const accentChangeMessageSchema = z.object({
-  type: z.literal('accent-change'),
-  protocolVersion,
-  accent: accentSchema,
+  theme: shellThemeSchema.nullable(),
+  accent: accentSchema.nullable(),
 });
 
 /** Discriminated union of every message the shell sends to a child app. */
@@ -134,8 +131,6 @@ export const shellToChildMessageSchema = z.discriminatedUnion('type', [
   jwtRefreshMessageSchema,
   sessionEndedMessageSchema,
   navigateToPathMessageSchema,
-  themeUpdateMessageSchema,
-  accentUpdateMessageSchema,
 ]);
 
 /** Discriminated union of every message a child app sends to the shell. */
@@ -144,8 +139,7 @@ export const childToShellMessageSchema = z.discriminatedUnion('type', [
   jwtRefreshRequestMessageSchema,
   requestShellContextMessageSchema,
   routeChangeMessageSchema,
-  themeChangeMessageSchema,
-  accentChangeMessageSchema,
+  pageThemeMessageSchema,
 ]);
 
 /** A user identity provided by the shell. */
@@ -169,12 +163,6 @@ export type SessionEndedMessage = z.infer<typeof sessionEndedMessageSchema>;
 /** Sent by the shell to tell the child app to navigate to a specific path. */
 export type NavigateToPathMessage = z.infer<typeof navigateToPathMessageSchema>;
 
-/** Sent by the shell when the theme changes. */
-export type ThemeUpdateMessage = z.infer<typeof themeUpdateMessageSchema>;
-
-/** Sent by the shell when the accent changes. */
-export type AccentUpdateMessage = z.infer<typeof accentUpdateMessageSchema>;
-
 /** Sent by a child app to navigate back to the shell's root. */
 export type NavigateToShellMessage = z.infer<typeof navigateToShellMessageSchema>;
 
@@ -187,11 +175,8 @@ export type RequestShellContextMessage = z.infer<typeof requestShellContextMessa
 /** Sent by a child app when its internal route changes. */
 export type RouteChangeMessage = z.infer<typeof routeChangeMessageSchema>;
 
-/** Sent by a child app to request a theme change. */
-export type ThemeChangeMessage = z.infer<typeof themeChangeMessageSchema>;
-
-/** Sent by a child app to request an accent change. */
-export type AccentChangeMessage = z.infer<typeof accentChangeMessageSchema>;
+/** Sent by a child app to declare its current page-level theme + accent. */
+export type PageThemeMessage = z.infer<typeof pageThemeMessageSchema>;
 
 /** Union of all messages the shell sends to child apps. */
 export type ShellToChildMessage = z.infer<typeof shellToChildMessageSchema>;
@@ -204,8 +189,6 @@ const SHELL_TO_CHILD_TYPES: ReadonlySet<string> = new Set([
   'jwt-refresh',
   'session-ended',
   'navigate-to-path',
-  'theme-update',
-  'accent-update',
 ]);
 
 const CHILD_TO_SHELL_TYPES: ReadonlySet<string> = new Set([
@@ -213,8 +196,7 @@ const CHILD_TO_SHELL_TYPES: ReadonlySet<string> = new Set([
   'request-jwt-refresh',
   'request-shell-context',
   'route-change',
-  'theme-change',
-  'accent-change',
+  'page-theme',
 ]);
 
 /**

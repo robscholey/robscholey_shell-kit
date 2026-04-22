@@ -19,7 +19,7 @@ describe('navigateToShell', () => {
     navigateToShell(SHELL_ORIGIN);
 
     expect(postMessageSpy).toHaveBeenCalledWith(
-      { type: 'navigate-to-shell', protocolVersion: 1 },
+      { type: 'navigate-to-shell', protocolVersion: 2 },
       SHELL_ORIGIN,
     );
 
