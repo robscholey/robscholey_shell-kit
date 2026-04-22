@@ -1,0 +1,27 @@
+/* Webfonts are loaded via <link> in .storybook/preview-head.html — that
+   path is faster + more reliable than CSS @import inside Storybook's
+   iframe preview. */
+
+@import 'tailwindcss';
+@import '../src/ui/theme.css';
+
+/* Tell Tailwind v4 to scan shell-kit's source for class usage so the JIT
+   pass covers every utility a component reaches for. */
+@source '../src';
+
+/* Body rule mirrors `design-system.css` line-for-line so the storybook
+   preview renders against an identical baseline. `text-rendering` and
+   `-moz-osx-font-smoothing` are intentionally NOT set — design-system.css
+   omits both, and adding them shifts Inter's kerning + ligature rendering
+   in ways that can read as a colour cast (text appears bluer / thinner). */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}

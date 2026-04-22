@@ -1,6 +1,8 @@
 node_modules
 dist
 coverage
+storybook-static
+shell-kit-ui.md
 .env
 .env.local
 .DS_Store

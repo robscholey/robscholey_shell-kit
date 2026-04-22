@@ -1,0 +1,14 @@
+<!--
+  Storybook injects this file's contents into the <head> of the preview
+  iframe. Google Fonts via <link> is more reliable than CSS @import inside
+  iframe-rendered Storybook previews — the latter can be slow to fire and
+  sometimes silently falls back to Segoe UI (which renders text with a
+  cool/blue ClearType tint on Windows, making `text-muted-foreground`
+  read bluer than the design's flat gray).
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
