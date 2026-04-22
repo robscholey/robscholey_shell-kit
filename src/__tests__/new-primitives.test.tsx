@@ -12,8 +12,9 @@ describe('Tag', () => {
     const { getByText } = render(<Tag>ts</Tag>);
     const el = getByText('ts');
     expect(el.tagName).toBe('SPAN');
-    expect(el.className).toContain('bg-surface-2');
+    expect(el.className).toContain('bg-transparent');
     expect(el.className).toContain('text-text-muted');
+    expect(el.className).toContain('lowercase');
   });
 
   it('applies accent variant classes', () => {

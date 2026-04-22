@@ -1,7 +1,10 @@
 import * as ProgressPrimitive from '@radix-ui/react-progress';
 import { cn } from '../lib/cn';
 
-/** A progress bar. Track on `--surface-2`, indicator on `--accent`. */
+// Indicator animates via width (300 ms ease) rather than translateX — the
+// design's `.progress-bar { transition: width 0.3s }` is the canonical
+// motion. translateX would still work but would extend off the right edge
+// of the track when the indicator's intrinsic width was 100%.
 function Progress({
   className,
   value,
@@ -13,8 +16,8 @@ function Progress({
       {...props}
     >
       <ProgressPrimitive.Indicator
-        className="h-full w-full flex-1 bg-accent transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        className="h-full bg-accent transition-[width] duration-300 ease-out"
+        style={{ width: `${value ?? 0}%` }}
       />
     </ProgressPrimitive.Root>
   );

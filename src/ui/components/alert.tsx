@@ -10,9 +10,9 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-l-brand',
+        default: 'border-l-accent',
         warm: 'border-l-warm',
-        destructive: 'border-l-destructive',
+        destructive: 'border-l-danger',
       },
     },
     defaultVariants: {

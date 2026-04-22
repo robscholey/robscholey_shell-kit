@@ -1,8 +1,11 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../lib/cn';
 
-/** Dot styling — colour driven by the pill's status. */
-const dotVariants = cva('h-1.5 w-1.5 rounded-full animate-pulse', {
+// Dot pulses via the box-shadow halo (`animate-dot-pulse`) — registered in
+// theme.css as `dot-pulse` keyframes that ramp `--accent-glow` from 0 to 5 px
+// spread and back. The previous `animate-pulse` (Tailwind opacity-fade) was
+// the wrong motion shape and the wrong colour (faded the dot itself).
+const dotVariants = cva('h-1.5 w-1.5 rounded-full motion-safe:animate-dot-pulse', {
   variants: {
     status: {
       default: 'bg-accent',
@@ -22,8 +25,12 @@ export interface SessionPillProps
 
 /**
  * A rounded mono-font pill used to surface a session / accent / mode indicator
- * in the site header. Renders an animated coloured dot followed by the
- * children as free-form label content.
+ * in the site header. Renders a pulsing coloured dot followed by the children
+ * as free-form label content.
+ *
+ * Surface is transparent (the design's `.session-pill` paints only its border)
+ * and the pill slides in from the right on mount via `animate-pill-in`
+ * (480 ms, 240 ms delay) — both registered as keyframes in theme.css.
  *
  * @example
  * ```tsx
@@ -40,7 +47,7 @@ function SessionPill({ className, status, children, ...props }: SessionPillProps
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-full px-3 py-1 bg-surface-2 border border-border font-mono text-[0.72rem] uppercase tracking-[0.1em] text-text-dim whitespace-nowrap',
+        'inline-flex items-center gap-2 rounded-full border border-border bg-transparent px-2.5 py-1 font-mono text-[0.72rem] uppercase tracking-widest text-text-dim whitespace-nowrap motion-safe:animate-pill-in',
         className,
       )}
       {...props}

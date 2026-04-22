@@ -228,6 +228,21 @@
 }
 .dot, pre, .diagram, .swatch { transition: none; }
 
+/* SessionPill animations — registered as keyframes so the Tailwind utilities
+   `animate-dot-pulse` and `animate-pill-in` are addressable from component
+   class strings. The dot pulse animates `box-shadow` spread from 0 → 5 px
+   and back so the halo "breathes" in the accent glow colour. The pill-in
+   slide is the entrance animation from the design's `.session-pill` rule
+   — translateX(6px) → 0 with a 240 ms delay. */
+@keyframes dot-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow); }
+  50%      { box-shadow: 0 0 0 5px transparent; }
+}
+@keyframes pill-in {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 @theme inline {
   --color-bg:             var(--bg);
   --color-bg-soft:        var(--bg-soft);
@@ -264,4 +279,7 @@
   --shadow-sm:   var(--shadow-sm);
   --shadow:      var(--shadow);
   --shadow-card: var(--shadow-card);
+
+  --animate-dot-pulse: dot-pulse 2.6s ease-out infinite;
+  --animate-pill-in:   pill-in 480ms cubic-bezier(0.2, 0.8, 0.2, 1) 240ms forwards;
 }

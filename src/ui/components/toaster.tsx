@@ -31,13 +31,13 @@ export function Toaster(props: ToasterProps) {
           toast: 'bg-surface border-border text-text shadow',
           title: 'font-medium',
           description: 'text-text-muted',
-          actionButton: 'bg-accent text-accent',
+          actionButton: 'bg-accent text-bg',
           cancelButton: 'bg-surface-2 text-text',
           closeButton: 'bg-surface-2 border-border',
-          success: 'border-l-4 border-l-brand',
-          error: 'border-l-4 border-l-destructive',
+          success: 'border-l-4 border-l-accent',
+          error: 'border-l-4 border-l-danger',
           warning: 'border-l-4 border-l-warm',
-          info: 'border-l-4 border-l-brand',
+          info: 'border-l-4 border-l-accent',
         },
       }}
       {...props}

@@ -40,7 +40,7 @@ function Avatar({ className, children, presence, ...props }: AvatarProps) {
           aria-hidden
           data-presence={presence}
           className={cn(
-            'absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full ring-2 ring-background',
+            'absolute bottom-0 right-0 h-[10px] w-[10px] rounded-full ring-2 ring-bg',
             presence === 'live' &&
               'bg-accent shadow-[0_0_0_3px_var(--accent-glow)]',
             presence === 'idle' && 'bg-warm',
@@ -79,9 +79,9 @@ function AvatarFallback({
 }
 
 /**
- * Props for {@link AvatarGroup}. Siblings after the first receive a small
- * negative margin to overlap, and a ring in `--bg` to punch them
- * apart visually.
+ * Props for {@link AvatarGroup}. Siblings after the first overlap by
+ * 10 px and replace their default border with a 2 px `--bg` border so the
+ * page surface separates the stacked avatars without an additive ring.
  */
 export type AvatarGroupProps = React.HTMLAttributes<HTMLDivElement>;
 
@@ -101,7 +101,7 @@ function AvatarGroup({ className, ...props }: AvatarGroupProps) {
   return (
     <div
       className={cn(
-        'inline-flex items-center [&>*+*]:-ml-2 [&>*+*]:ring-2 [&>*+*]:ring-background',
+        'inline-flex items-center [&>*+*]:-ml-2.5 [&>*+*]:border-2 [&>*+*]:border-bg',
         className,
       )}
       {...props}
